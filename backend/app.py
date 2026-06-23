@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException  # type: ignore
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore
+from pydantic import BaseModel  # type: ignore
 from database import get_db, init_db
 
 app = FastAPI()
