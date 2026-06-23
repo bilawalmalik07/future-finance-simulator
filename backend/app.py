@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 from pydantic import BaseModel  # type: ignore
 from database import get_db, init_db
+import random
 
 app = FastAPI()
 
@@ -86,3 +87,17 @@ def login(data: UsernameRequest):
             "created_at": str(user[2])
         }
     }
+
+
+facts = [
+    "The average American spends $1,200 a year on coffee",
+    "Only 40% of Americans have enough savings for a $1,000 emergency",
+    "Credit card debt in the US is over $1 trillion",
+    "Saving just $5 a day = $1,825 a year",
+    "Most millionaires drive used cars"
+]
+
+
+@app.get("/api/fun-fact")
+def fun_fact():
+    return {"fact": random.choice(facts)}
