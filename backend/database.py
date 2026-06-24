@@ -22,6 +22,19 @@ def init_db():
         )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS simulations (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        job VARCHAR(100),
+        salary INTEGER,
+        tax_rate FLOAT,
+        monthly_income FLOAT,
+        location VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+
     conn.commit()
     cursor.close()
     conn.close()
