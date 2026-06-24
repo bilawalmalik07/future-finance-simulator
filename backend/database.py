@@ -23,17 +23,34 @@ def init_db():
     """)
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS simulations (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
-        job VARCHAR(100),
-        salary INTEGER,
-        tax_rate FLOAT,
-        monthly_income FLOAT,
-        location VARCHAR(100),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-""")
+        CREATE TABLE IF NOT EXISTS simulations (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            job VARCHAR(100),
+            salary INTEGER,
+            tax_rate FLOAT,
+            monthly_income FLOAT,
+            location VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS budgets (
+            id SERIAL PRIMARY KEY,
+            simulation_id INTEGER REFERENCES simulations(id),
+            month_number INTEGER,
+            housing FLOAT,
+            transport FLOAT,
+            food FLOAT,
+            utilities FLOAT,
+            entertainment FLOAT,
+            savings FLOAT,
+            total_spent FLOAT,
+            remaining FLOAT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     conn.commit()
     cursor.close()

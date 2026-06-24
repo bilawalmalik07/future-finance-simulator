@@ -23,6 +23,16 @@ class UsernameRequest(BaseModel):
     username: str
 
 
+class BudgetRequest(BaseModel):
+    simulation_id: int
+    month_number: int
+    housing: float
+    transport: float
+    food: float
+    utilities: float
+    entertainment: float
+
+
 @app.get("/")
 def home():
     return {"message": "Future Finance Simulator API running!"}
@@ -147,6 +157,56 @@ def start_simulation(user_id: int):
                 "tax_rate": sim[3],
                 "monthly_income": sim[4],
                 "location": sim[5]
+            }
+        }
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ─── Budget Engine ───────────────────────────
+
+@app.post("/api/budget/submit")
+def submit_budget(data: BudgetRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # get monthly income for this simulation
+    cursor.execute(
+        "SELECT monthly_income FROM simulations WHERE id = %s",
+        (data.simulation_id,)
+    )
+    sim = cursor.fetchone()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    monthly_income = sim[0]
+    total_spent = round(data.housing + data.transport +
+                        data.food + data.utilities + data.entertainment, 2)
+    remaining = round(monthly_income - total_spent, 2)
+    savings = remaining if remaining > 0 else 0
+
+    try:
+        cursor.execute("""
+            INSERT INTO budgets (simulation_id, month_number, housing, transport, food, utilities, entertainment, savings, total_spent, remaining)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (data.simulation_id, data.month_number, data.housing, data.transport,
+              data.food, data.utilities, data.entertainment, savings, total_spent, remaining))
+        budget = cursor.fetchone()
+        conn.commit()
+        return {
+            "message": "Budget submitted!",
+            "budget": {
+                "id": budget[0],
+                "monthly_income": monthly_income,
+                "total_spent": total_spent,
+                "savings": savings,
+                "remaining": remaining,
+                "overspent": remaining < 0
             }
         }
     except Exception as e:
