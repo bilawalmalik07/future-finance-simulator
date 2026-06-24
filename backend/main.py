@@ -223,8 +223,19 @@ def update_credit_score(simulation_id: int):
     conn = get_db()
     cursor = conn.cursor()
 
+    # get monthly income from simulations
+    cursor.execute(
+        "SELECT monthly_income FROM simulations WHERE id = %s",
+        (simulation_id,)
+    )
+    sim = cursor.fetchone()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+    monthly_income = sim[0]
+
+    # get latest budget
     cursor.execute("""
-        SELECT monthly_income, total_spent, savings, remaining
+        SELECT total_spent, savings, remaining
         FROM budgets
         WHERE simulation_id = %s
         ORDER BY month_number DESC
@@ -236,8 +247,9 @@ def update_credit_score(simulation_id: int):
         raise HTTPException(
             status_code=404, detail="No budget found for this simulation")
 
-    monthly_income, total_spent, savings, remaining = budget
+    total_spent, savings, remaining = budget
 
+    # get current credit score
     cursor.execute("""
         SELECT score FROM credit_scores
         WHERE simulation_id = %s
@@ -247,6 +259,7 @@ def update_credit_score(simulation_id: int):
     current = cursor.fetchone()
     score = current[0] if current else 650
 
+    # get latest month number
     cursor.execute("""
         SELECT month_number FROM budgets
         WHERE simulation_id = %s
