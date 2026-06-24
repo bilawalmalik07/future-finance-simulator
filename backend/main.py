@@ -174,7 +174,6 @@ def submit_budget(data: BudgetRequest):
     conn = get_db()
     cursor = conn.cursor()
 
-    # get monthly income for this simulation
     cursor.execute(
         "SELECT monthly_income FROM simulations WHERE id = %s",
         (data.simulation_id,)
@@ -207,6 +206,106 @@ def submit_budget(data: BudgetRequest):
                 "savings": savings,
                 "remaining": remaining,
                 "overspent": remaining < 0
+            }
+        }
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ─── Credit Score System ───────────────────────────
+
+@app.post("/api/credit/update/{simulation_id}")
+def update_credit_score(simulation_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT monthly_income, total_spent, savings, remaining
+        FROM budgets
+        WHERE simulation_id = %s
+        ORDER BY month_number DESC
+        LIMIT 1
+    """, (simulation_id,))
+    budget = cursor.fetchone()
+
+    if not budget:
+        raise HTTPException(
+            status_code=404, detail="No budget found for this simulation")
+
+    monthly_income, total_spent, savings, remaining = budget
+
+    cursor.execute("""
+        SELECT score FROM credit_scores
+        WHERE simulation_id = %s
+        ORDER BY month_number DESC
+        LIMIT 1
+    """, (simulation_id,))
+    current = cursor.fetchone()
+    score = current[0] if current else 650
+
+    cursor.execute("""
+        SELECT month_number FROM budgets
+        WHERE simulation_id = %s
+        ORDER BY month_number DESC
+        LIMIT 1
+    """, (simulation_id,))
+    month = cursor.fetchone()[0]
+
+    change = 0
+    reasons = []
+
+    if remaining >= 0:
+        change += 25
+        reasons.append("Paid bills on time +25")
+    else:
+        change -= 50
+        reasons.append("Overspent -50")
+
+    if savings > 0:
+        change += 10
+        reasons.append("Has savings +10")
+    else:
+        change -= 20
+        reasons.append("No savings -20")
+
+    if (total_spent / monthly_income) <= 0.7:
+        change += 15
+        reasons.append("Spent under 70% of income +15")
+
+    if monthly_income > 0 and (total_spent / monthly_income) > 0.5:
+        change -= 10
+        reasons.append("Spent over 50% of income -10")
+
+    new_score = max(300, min(850, score + change))
+    reason_text = ", ".join(reasons)
+
+    if new_score >= 800:
+        rating = "Excellent"
+    elif new_score >= 700:
+        rating = "Good"
+    elif new_score >= 600:
+        rating = "Fair"
+    else:
+        rating = "Poor"
+
+    try:
+        cursor.execute("""
+            INSERT INTO credit_scores (simulation_id, month_number, score, change, reason)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (simulation_id, month, new_score, change, reason_text))
+        conn.commit()
+        return {
+            "message": "Credit score updated!",
+            "credit": {
+                "previous_score": score,
+                "change": change,
+                "new_score": new_score,
+                "rating": rating,
+                "reasons": reasons
             }
         }
     except Exception as e:

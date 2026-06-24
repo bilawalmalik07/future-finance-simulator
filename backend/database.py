@@ -52,6 +52,18 @@ def init_db():
         )
     """)
 
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS credit_scores (
+            id SERIAL PRIMARY KEY,
+            simulation_id INTEGER REFERENCES simulations(id),
+            month_number INTEGER,
+            score INTEGER,
+            change INTEGER,
+            reason VARCHAR(200),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     cursor.close()
     conn.close()
