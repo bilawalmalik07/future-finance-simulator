@@ -64,6 +64,18 @@ def init_db():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+        id SERIAL PRIMARY KEY,
+        simulation_id INTEGER REFERENCES simulations(id),
+        month_number INTEGER,
+        event_name VARCHAR(100),
+        cost FLOAT,
+        description VARCHAR(200),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     cursor.close()
     conn.close()

@@ -327,3 +327,83 @@ def update_credit_score(simulation_id: int):
     finally:
         cursor.close()
         conn.close()
+
+# ─── Emergency Event Generator ───────────────────────────
+
+
+emergency_events = [
+    {"name": "Car Breakdown", "cost": 800,
+        "description": "Your car broke down and needs urgent repairs."},
+    {"name": "Medical Bill", "cost": 1500,
+        "description": "Unexpected medical expense hit your wallet."},
+    {"name": "Laptop Died", "cost": 600,
+        "description": "Your laptop stopped working and needs replacement."},
+    {"name": "Flood Damage", "cost": 2000,
+        "description": "Water damage in your apartment needs fixing."},
+    {"name": "Phone Stolen", "cost": 400,
+        "description": "Your phone was stolen and needs replacement."},
+    {"name": "Family Emergency", "cost": 1000,
+        "description": "A family member needed urgent financial help."},
+    {"name": "Job Loss", "cost": 0,
+        "description": "You lost your job this month! No income."},
+    {"name": "Pet Emergency", "cost": 700,
+        "description": "Your pet needed emergency vet care."},
+]
+
+
+@app.post("/api/events/trigger/{simulation_id}/{month_number}")
+def trigger_event(simulation_id: int, month_number: int):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # 40% chance an event happens
+    if random.random() > 0.4:
+        return {"message": "No event this month!", "event": None}
+
+    event = random.choice(emergency_events)
+
+    # get current savings
+    cursor.execute("""
+        SELECT savings, remaining FROM budgets
+        WHERE simulation_id = %s AND month_number = %s
+    """, (simulation_id, month_number))
+    budget = cursor.fetchone()
+
+    if not budget:
+        raise HTTPException(
+            status_code=404, detail="Budget not found for this month")
+
+    savings, remaining = budget
+    new_savings = max(0, savings - event["cost"])
+    impact = "savings wiped out!" if new_savings == 0 else f"lost ${event['cost']} from savings"
+
+    try:
+        cursor.execute("""
+            INSERT INTO events (simulation_id, month_number, event_name, cost, description)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (simulation_id, month_number, event["name"], event["cost"], event["description"]))
+
+        # update savings in budgets table
+        cursor.execute("""
+            UPDATE budgets SET savings = %s WHERE simulation_id = %s AND month_number = %s
+        """, (new_savings, simulation_id, month_number))
+
+        conn.commit()
+        return {
+            "message": "Emergency event occurred!",
+            "event": {
+                "name": event["name"],
+                "cost": event["cost"],
+                "description": event["description"],
+                "previous_savings": savings,
+                "new_savings": new_savings,
+                "impact": impact
+            }
+        }
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
