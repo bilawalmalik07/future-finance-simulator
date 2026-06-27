@@ -450,8 +450,8 @@ def trigger_event(simulation_id: int, month_number: int):
             status_code=404, detail="Budget not found for this month")
 
     savings, remaining = budget
-    new_savings = max(0, savings - event["cost"])
-    impact = "savings wiped out!" if new_savings == 0 else f"lost ${event['cost']} from savings"
+    new_savings = savings - event["cost"]
+    impact = "savings wiped out!" if new_savings <= 0 else f"lost ${event['cost']} from savings"
 
     try:
         cursor.execute("""
