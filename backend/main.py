@@ -541,7 +541,6 @@ def get_simulation_summary(simulation_id: int):
 
 
 # ─── Serve React Frontend ───────────────────────────
-# This must come AFTER all API routes
 
 static_dir = os.path.join(os.path.dirname(__file__), "../frontend/dist")
 
