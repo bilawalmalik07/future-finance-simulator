@@ -56,7 +56,7 @@ function AuthCard({ mode, setMode, username, setUsername, status, error, handleS
         />
         {error && <p style={{ color: 'var(--red)', fontSize: 12, marginBottom: 16 }}>{error}</p>}
         <button type="button" className="btn-primary" style={{ width: '100%', opacity: status === 'loading' ? 0.6 : 1 }} onClick={handleSubmit} disabled={status === 'loading'}>
-          {status === 'loading' ? 'Loading…' : mode === 'login' ? 'Sign In →' : 'Start Simulation →'}
+          {status === 'loading' ? 'Loading…' : mode === 'login' ? 'Sign In →' : 'Sign Up →'}
         </button>
         <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--text-muted)', fontSize: 13 }}>
           {mode === 'login' ? 'No account? ' : 'Already have one? '}
