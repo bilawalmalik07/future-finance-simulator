@@ -18,24 +18,34 @@ export default function Dashboard() {
   const [runningSavings, setRunningSavings] = useState(null);
   const navigate = useNavigate();
 
+  function fetchSummary(simId) {
+    getSimulationSummary(simId)
+      .then(r => {
+        if (r && r.data && typeof r.data.total_savings === 'number') {
+          setSummary(r.data);
+          setRunningSavings(r.data.total_savings);
+        }
+      })
+      .catch(() => {});
+  }
+
   useEffect(() => {
     const stored = localStorage.getItem('user');
     if (!stored) return navigate('/');
     setUser(JSON.parse(stored));
+
     const storedSim = localStorage.getItem('simulation');
     if (storedSim) {
       const parsedSim = JSON.parse(storedSim);
       setSim(parsedSim);
       const currentMonth = parseInt(localStorage.getItem('currentMonth') || '1');
       setMonth(currentMonth);
-      // Always fetch summary for running savings total (works mid-game too)
-      getSimulationSummary(parsedSim.id)
-        .then(r => {
-          setSummary(r.data);
-          setRunningSavings(r.data.total_savings);
-        })
-        .catch(() => {});
+      // Only fetch if at least one budget has been submitted
+      if (currentMonth > 1) {
+        fetchSummary(parsedSim.id);
+      }
     }
+
     getFunFact().then(r => setFact(r.data.fact)).catch(() => {});
   }, []);
 
@@ -122,7 +132,6 @@ export default function Dashboard() {
           </div>
 
         ) : gameOver ? (
-          /* Game Over Screen */
           <div style={styles.gameOverCard}>
             <div style={styles.gameOverEmoji}>🏁</div>
             <h2 style={styles.gameOverTitle}>Simulation Complete!</h2>
@@ -151,13 +160,13 @@ export default function Dashboard() {
                   <div style={styles.summaryStat}>
                     <p style={styles.summaryStatLabel}>Total Saved</p>
                     <p style={{ ...styles.summaryStatValue, color: 'var(--green)' }}>
-                      ${summary.total_savings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ${Number(summary.total_savings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div style={styles.summaryStat}>
                     <p style={styles.summaryStatLabel}>Total Spent</p>
                     <p style={{ ...styles.summaryStatValue, color: 'var(--text)' }}>
-                      ${summary.total_spent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ${Number(summary.total_spent).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div style={styles.summaryStat}>
@@ -220,29 +229,31 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Running Savings Total */}
-            <div style={styles.savingsRow}>
-              <div style={styles.savingsStat}>
-                <p style={styles.savingsLabel}>💰 Total Saved So Far</p>
-                <p style={styles.savingsValue}>
-                  {runningSavings !== null
-                    ? `$${runningSavings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : '—'}
-                </p>
+            {/* Running Savings Total — only shown after at least 1 month played */}
+            {month > 1 && (
+              <div style={styles.savingsRow}>
+                <div style={styles.savingsStat}>
+                  <p style={styles.savingsLabel}>💰 Total Saved So Far</p>
+                  <p style={styles.savingsValue}>
+                    {runningSavings !== null
+                      ? `$${Number(runningSavings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '—'}
+                  </p>
+                </div>
+                <div style={styles.savingsStat}>
+                  <p style={styles.savingsLabel}>📅 Months Remaining</p>
+                  <p style={{ ...styles.savingsValue, color: 'var(--yellow)' }}>{Math.max(0, 13 - month)}</p>
+                </div>
+                <div style={styles.savingsStat}>
+                  <p style={styles.savingsLabel}>📈 Avg Saved / Month</p>
+                  <p style={{ ...styles.savingsValue, color: 'var(--blue)' }}>
+                    {runningSavings !== null && month > 1
+                      ? `$${(Number(runningSavings) / (month - 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '—'}
+                  </p>
+                </div>
               </div>
-              <div style={styles.savingsStat}>
-                <p style={styles.savingsLabel}>📅 Months Remaining</p>
-                <p style={{ ...styles.savingsValue, color: 'var(--yellow)' }}>{Math.max(0, 13 - month)}</p>
-              </div>
-              <div style={styles.savingsStat}>
-                <p style={styles.savingsLabel}>📈 Avg Saved / Month</p>
-                <p style={{ ...styles.savingsValue, color: 'var(--blue)' }}>
-                  {runningSavings !== null && month > 1
-                    ? `$${(runningSavings / (month - 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : '—'}
-                </p>
-              </div>
-            </div>
+            )}
 
             <div style={styles.actions}>
               <ActionCard icon="💰" title="Submit Budget" sub={`Allocate your month ${month} income`} onClick={() => navigate('/budget')} primary />
@@ -294,7 +305,7 @@ const styles = {
   startEmoji: { fontSize: 64, marginBottom: 20 },
   startTitle: { fontSize: 26, fontWeight: 700, marginBottom: 12 },
   startSub: { color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 32 },
-  gameOverCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '64px 40px', textAlign: 'center' },
+  gameOverCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '48px 40px', textAlign: 'center' },
   gameOverEmoji: { fontSize: 72, marginBottom: 20 },
   gameOverTitle: { fontSize: 32, fontWeight: 700, marginBottom: 12 },
   gameOverSub: { color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.7, marginBottom: 32 },
@@ -302,6 +313,15 @@ const styles = {
   gameOverStat: { textAlign: 'center' },
   gameOverStatLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   gameOverStatValue: { fontSize: 18, fontFamily: 'Space Grotesk', fontWeight: 700 },
+  summaryBlock: { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', marginBottom: 32, textAlign: 'left' },
+  summaryBlockTitle: { fontSize: 15, fontWeight: 700, marginBottom: 20, color: 'var(--text)' },
+  summaryGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 },
+  summaryStat: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 18px' },
+  summaryStatLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  summaryStatValue: { fontSize: 20, fontFamily: 'Space Grotesk', fontWeight: 700 },
+  creditSummaryRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 0', borderTop: '1px solid var(--border)', marginTop: 4 },
+  creditSummaryLabel: { fontSize: 13, color: 'var(--text-muted)' },
+  creditSummaryValue: { fontSize: 16, fontFamily: 'Space Grotesk', fontWeight: 700 },
   careerCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 20 },
   careerLeft: { display: 'flex', alignItems: 'center', gap: 20 },
   jobEmoji: { fontSize: 48 },
@@ -319,20 +339,11 @@ const styles = {
   monthOf: { fontSize: 16, color: 'var(--text-muted)' },
   progressBar: { height: 4, background: 'var(--border)', borderRadius: 4 },
   progressFill: { height: '100%', background: 'var(--green)', borderRadius: 4, transition: 'width 0.5s ease' },
-  actions: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 },
   savingsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 },
   savingsStat: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' },
   savingsLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   savingsValue: { fontSize: 20, fontFamily: 'Space Grotesk', fontWeight: 700, color: 'var(--green)' },
-  summaryBlock: { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', marginBottom: 32, textAlign: 'left' },
-  summaryBlockTitle: { fontSize: 15, fontWeight: 700, marginBottom: 20, color: 'var(--text)' },
-  summaryGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 },
-  summaryStat: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 18px' },
-  summaryStatLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  summaryStatValue: { fontSize: 20, fontFamily: 'Space Grotesk', fontWeight: 700 },
-  creditSummaryRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 0', borderTop: '1px solid var(--border)', marginTop: 4 },
-  creditSummaryLabel: { fontSize: 13, color: 'var(--text-muted)' },
-  creditSummaryValue: { fontSize: 16, fontFamily: 'Space Grotesk', fontWeight: 700 },
+  actions: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 },
   actionCard: { display: 'flex', alignItems: 'center', gap: 14, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 20px', textAlign: 'left', cursor: 'pointer', color: 'var(--text)', transition: 'all 0.15s', width: '100%' },
   actionPrimary: { background: 'var(--green-glow)', borderColor: 'rgba(0,230,118,0.25)' },
   actionIcon: { fontSize: 28 },
