@@ -12,5 +12,6 @@ export const getFunFact = () => API.get('/api/fun-fact');
 export const submitBudget = (budgetData) => API.post('/api/budget/submit', budgetData);
 export const updateCreditScore = (simulationId) => API.post(`/api/credit/update/${simulationId}`);
 export const triggerEvent = (simulationId, monthNumber) => API.post(`/api/events/trigger/${simulationId}/${monthNumber}`);
+export const getSimulationSummary = (simulationId) => API.get(`/api/simulation/summary/${simulationId}`);
 
 export default API;

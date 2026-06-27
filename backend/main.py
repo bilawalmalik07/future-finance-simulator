@@ -293,14 +293,16 @@ def update_credit_score(simulation_id: int):
         change -= 10
         reasons.append("Spent over 50% of income -10")
 
-    new_score = max(300, min(850, score + change))
+    new_score = max(300, min(1000, score + change))
     reason_text = ", ".join(reasons)
 
-    if new_score >= 800:
+    if new_score >= 950:
+        rating = "Legendary"
+    elif new_score >= 850:
         rating = "Excellent"
-    elif new_score >= 700:
+    elif new_score >= 750:
         rating = "Good"
-    elif new_score >= 600:
+    elif new_score >= 620:
         rating = "Fair"
     else:
         rating = "Poor"
@@ -407,3 +409,64 @@ def trigger_event(simulation_id: int, month_number: int):
     finally:
         cursor.close()
         conn.close()
+
+
+# ─── Simulation Year Summary ───────────────────────────
+
+@app.get("/api/simulation/summary/{simulation_id}")
+def get_simulation_summary(simulation_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Sum savings across all months
+    cursor.execute("""
+        SELECT COALESCE(SUM(savings), 0), COUNT(*) FROM budgets
+        WHERE simulation_id = %s
+    """, (simulation_id,))
+    row = cursor.fetchone()
+    total_savings = float(row[0])
+    months_played = int(row[1])
+
+    # Total spent across the year
+    cursor.execute("""
+        SELECT COALESCE(SUM(total_spent), 0) FROM budgets
+        WHERE simulation_id = %s
+    """, (simulation_id,))
+    total_spent = float(cursor.fetchone()[0])
+
+    # Count months where user overspent
+    cursor.execute("""
+        SELECT COUNT(*) FROM budgets
+        WHERE simulation_id = %s AND remaining < 0
+    """, (simulation_id,))
+    overspent_months = int(cursor.fetchone()[0])
+
+    # Final credit score
+    cursor.execute("""
+        SELECT score FROM credit_scores
+        WHERE simulation_id = %s
+        ORDER BY month_number DESC LIMIT 1
+    """, (simulation_id,))
+    credit_row = cursor.fetchone()
+    final_credit_score = credit_row[0] if credit_row else 650
+
+    # Starting credit score
+    cursor.execute("""
+        SELECT score FROM credit_scores
+        WHERE simulation_id = %s
+        ORDER BY month_number ASC LIMIT 1
+    """, (simulation_id,))
+    first_credit = cursor.fetchone()
+    starting_credit_score = first_credit[0] if first_credit else 650
+
+    cursor.close()
+    conn.close()
+
+    return {
+        "total_savings": total_savings,
+        "total_spent": total_spent,
+        "months_played": months_played,
+        "overspent_months": overspent_months,
+        "final_credit_score": final_credit_score,
+        "credit_change_overall": final_credit_score - starting_credit_score,
+    }

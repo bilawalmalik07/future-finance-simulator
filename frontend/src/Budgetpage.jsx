@@ -196,7 +196,7 @@ export default function BudgetPage() {
                 <span style={{ ...styles.creditChange, color: result.credit.change >= 0 ? 'var(--green)' : 'var(--red)' }}>
                   {result.credit.change >= 0 ? '+' : ''}{result.credit.change}
                 </span>
-                <span className={`tag tag-${result.credit.rating === 'Excellent' ? 'green' : result.credit.rating === 'Good' ? 'blue' : result.credit.rating === 'Fair' ? 'yellow' : 'red'}`}>
+                <span className={`tag tag-${result.credit.rating === 'Legendary' ? 'green' : result.credit.rating === 'Excellent' ? 'green' : result.credit.rating === 'Good' ? 'blue' : result.credit.rating === 'Fair' ? 'yellow' : 'red'}`}>
                   {result.credit.rating}
                 </span>
               </div>
