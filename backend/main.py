@@ -492,12 +492,17 @@ def get_simulation_summary(simulation_id: int):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT COALESCE(SUM(savings), 0), COUNT(*) FROM budgets
+        SELECT COUNT(*) FROM budgets
         WHERE simulation_id = %s
     """, (simulation_id,))
-    row = cursor.fetchone()
-    total_savings = float(row[0])
-    months_played = int(row[1])
+    months_played = int(cursor.fetchone()[0])
+
+    cursor.execute("""
+        SELECT COALESCE(savings, 0) FROM budgets
+        WHERE simulation_id = %s
+        ORDER BY month_number DESC LIMIT 1
+    """, (simulation_id,))
+    total_savings = float(cursor.fetchone()[0])
 
     cursor.execute("""
         SELECT COALESCE(SUM(total_spent), 0) FROM budgets
