@@ -33,7 +33,7 @@ function AuthCard({ mode, setMode, username, setUsername, status, error, handleS
     }}>
       <div style={{ display: 'flex', background: 'var(--surface2)', borderRadius: 8, padding: 4, marginBottom: 28, gap: 4 }}>
         {['login', 'signup'].map(m => (
-          <button key={m} style={{
+          <button type="button" key={m} style={{
             flex: 1, padding: '9px 0', borderRadius: 6,
             background: mode === m ? 'var(--border)' : 'transparent',
             color: mode === m ? 'var(--text)' : 'var(--text-muted)',
@@ -55,7 +55,7 @@ function AuthCard({ mode, setMode, username, setUsername, status, error, handleS
           style={{ marginBottom: error ? 8 : 20 }}
         />
         {error && <p style={{ color: 'var(--red)', fontSize: 12, marginBottom: 16 }}>{error}</p>}
-        <button className="btn-primary" style={{ width: '100%', opacity: status === 'loading' ? 0.6 : 1 }} onClick={handleSubmit} disabled={status === 'loading'}>
+        <button type="button" className="btn-primary" style={{ width: '100%', opacity: status === 'loading' ? 0.6 : 1 }} onClick={handleSubmit} disabled={status === 'loading'}>
           {status === 'loading' ? 'Loading…' : mode === 'login' ? 'Sign In →' : 'Start Simulation →'}
         </button>
         <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--text-muted)', fontSize: 13 }}>

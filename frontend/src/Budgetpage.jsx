@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitBudget, updateCreditScore, triggerEvent } from './Api';
 
@@ -29,6 +29,7 @@ export default function BudgetPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const inputRefs = useRef([]);
 
   useEffect(() => {
     const s = localStorage.getItem('simulation');
@@ -41,6 +42,17 @@ export default function BudgetPage() {
   const totalSpent = Object.values(values).reduce((a, v) => a + (parseFloat(v) || 0), 0);
   const remaining = income - totalSpent;
   const pct = income > 0 ? Math.min((totalSpent / income) * 100, 100) : 0;
+
+  function handleKeyDown(e, index) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (index < categories.length - 1) {
+        inputRefs.current[index + 1]?.focus();
+      } else {
+        handleSubmit();
+      }
+    }
+  }
 
   async function handleSubmit() {
     setError('');
@@ -78,7 +90,7 @@ export default function BudgetPage() {
               <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>Monthly take-home: <strong style={{ color: 'var(--green)' }}>${income.toLocaleString()}</strong></p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-                {categories.map(cat => (
+                {categories.map((cat, index) => (
                   <div key={cat.key}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>
                       <span>{cat.icon} {cat.label}</span>
@@ -87,10 +99,12 @@ export default function BudgetPage() {
                     <div style={{ position: 'relative' }}>
                       <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }}>$</span>
                       <input
+                        ref={el => inputRefs.current[index] = el}
                         className="input-field"
                         type="number" min="0" placeholder="0"
                         value={values[cat.key]}
                         onChange={e => setValues(p => ({ ...p, [cat.key]: e.target.value }))}
+                        onKeyDown={e => handleKeyDown(e, index)}
                         style={{ paddingLeft: 32, borderRadius: 8 }}
                       />
                     </div>
@@ -104,7 +118,7 @@ export default function BudgetPage() {
               </button>
             </div>
 
-            {/* Summary — on mobile shows below form */}
+            {/* Summary */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: isMobile ? 20 : 28 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Live Summary</h3>
               <div style={{ marginBottom: 20 }}>
