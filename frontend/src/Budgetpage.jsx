@@ -38,6 +38,16 @@ export default function BudgetPage() {
     setMonth(parseInt(localStorage.getItem('currentMonth') || '1'));
   }, []);
 
+  useEffect(() => {
+    function handleEnter(e) {
+      if (e.key === 'Enter' && result) {
+        navigate('/dashboard');
+      }
+    }
+    window.addEventListener('keydown', handleEnter);
+    return () => window.removeEventListener('keydown', handleEnter);
+  }, [result]);
+
   const income = sim?.monthly_income || 0;
   const totalSpent = Object.values(values).reduce((a, v) => a + (parseFloat(v) || 0), 0);
   const remaining = income - totalSpent;

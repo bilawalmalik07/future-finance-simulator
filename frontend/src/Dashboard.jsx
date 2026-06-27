@@ -111,7 +111,7 @@ export default function Dashboard() {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '24px 16px' : '40px 24px' }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, letterSpacing: '-0.5px', marginBottom: 12 }}>
-            Welcome back, <span style={{ color: 'var(--green)' }}>{user?.username}</span> 👋
+            {localStorage.getItem('isNewUser') === 'true' ? 'Welcome,' : 'Welcome back,'} <span style={{ color: 'var(--green)' }}>{user?.username}</span> 👋
           </h1>
           {fact && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-glow)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: 'var(--text-muted)' }}>
