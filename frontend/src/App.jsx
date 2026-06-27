@@ -1,17 +1,17 @@
-import axios from 'axios';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import AuthPage from './AuthPage';
+import Dashboard from './Dashboard';
+import BudgetPage from './Budgetpage';
 
-const API = axios.create({
-  baseURL: 'http://localhost:8000',
-});
-
-export const checkUsername = (username) => API.get(`/api/auth/check/${username}`);
-export const signup = (username) => API.post('/api/auth/signup', { username });
-export const login = (username) => API.post('/api/auth/login', { username });
-export const startSimulation = (userId) => API.post(`/api/simulation/start/${userId}`);
-export const getFunFact = () => API.get('/api/fun-fact');
-export const submitBudget = (budgetData) => API.post('/api/budget/submit', budgetData);
-export const updateCreditScore = (simulationId) => API.post(`/api/credit/update/${simulationId}`);
-export const triggerEvent = (simulationId, monthNumber) => API.post(`/api/events/trigger/${simulationId}/${monthNumber}`);
-export const getSimulationSummary = (simulationId) => API.get(`/api/simulation/summary/${simulationId}`);
-
-export default API;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/auth" />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/budget" element={<BudgetPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
