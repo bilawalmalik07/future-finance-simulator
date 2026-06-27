@@ -129,7 +129,7 @@ export default function Dashboard() {
               Then manage your budget across 12 simulated months.
             </p>
             <button className="btn-primary" style={{ fontSize: 16, padding: '14px 40px' }} onClick={handleStartSim} disabled={loading}>
-              {loading ? 'Assigning career…' : '🚀 Start Simulation'}
+              {loading ? 'Assigning career…' : 'Start Simulation'}
             </button>
           </div>
 
