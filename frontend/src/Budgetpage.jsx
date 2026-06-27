@@ -71,6 +71,11 @@ export default function BudgetPage() {
   }
 
   function handleKeyDown(e, index) {
+    // Prevent minus, e, E, +, ArrowUp, ArrowDown from being typed in number fields
+    if (['-', 'e', 'E', '+'].includes(e.key)) {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       if (index < categories.length - 1) {
