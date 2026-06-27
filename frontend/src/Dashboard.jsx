@@ -92,7 +92,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', overflowX: 'hidden' }}>
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: isMobile ? '12px 16px' : '16px 40px',
@@ -114,7 +114,7 @@ export default function Dashboard() {
             Welcome back, <span style={{ color: 'var(--green)' }}>{user?.username}</span> 👋
           </h1>
           {fact && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--green-glow)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--green-glow)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: 'var(--text-muted)' }}>
               <span>💡</span><span>{fact}</span>
             </div>
           )}
