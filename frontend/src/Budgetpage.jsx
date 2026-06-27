@@ -43,17 +43,6 @@ export default function BudgetPage() {
   const remaining = income - totalSpent;
   const pct = income > 0 ? Math.min((totalSpent / income) * 100, 100) : 0;
 
-  function handleKeyDown(e, index) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (index < categories.length - 1) {
-        inputRefs.current[index + 1]?.focus();
-      } else {
-        handleSubmit();
-      }
-    }
-  }
-
   async function handleSubmit() {
     setError('');
     const parsed = {};
@@ -69,6 +58,17 @@ export default function BudgetPage() {
       setError(e.response?.data?.detail || 'Failed to submit budget.');
     }
     setLoading(false);
+  }
+
+  function handleKeyDown(e, index) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (index < categories.length - 1) {
+        inputRefs.current[index + 1]?.focus();
+      } else {
+        handleSubmit();
+      }
+    }
   }
 
   if (!sim) return null;
