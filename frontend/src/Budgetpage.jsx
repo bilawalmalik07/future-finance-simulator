@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { submitBudget, updateCreditScore } from '../api';
+import { submitBudget, updateCreditScore } from './Api';
 
 const categories = [
   { key: 'housing', label: 'Housing', icon: '🏠', hint: 'Rent or mortgage' },
@@ -39,28 +39,15 @@ export default function BudgetPage() {
     }
     setLoading(true);
     try {
-      const res = await submitBudget({
-        simulation_id: sim.id,
-        month_number: month,
-        ...parsed,
-      });
+      const res = await submitBudget({ simulation_id: sim.id, month_number: month, ...parsed });
       const budgetResult = res.data.budget;
-
-      // Auto-update credit score
       const creditRes = await updateCreditScore(sim.id);
       setResult({ budget: budgetResult, credit: creditRes.data.credit });
-
-      // Advance month
-      const nextMonth = month + 1;
-      localStorage.setItem('currentMonth', String(nextMonth));
+      localStorage.setItem('currentMonth', String(month + 1));
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to submit budget.');
     }
     setLoading(false);
-  }
-
-  function handleDone() {
-    navigate('/dashboard');
   }
 
   if (!sim) return null;
@@ -76,7 +63,6 @@ export default function BudgetPage() {
       <div style={styles.content}>
         {!result ? (
           <div style={styles.layout}>
-            {/* Form */}
             <div style={styles.formSide}>
               <h2 style={styles.title}>Allocate your income</h2>
               <p style={styles.sub}>Monthly take-home: <strong style={{ color: 'var(--green)' }}>${income.toLocaleString()}</strong></p>
@@ -105,31 +91,19 @@ export default function BudgetPage() {
               </div>
 
               {error && <p style={styles.error}>{error}</p>}
-
-              <button
-                className="btn-primary"
-                style={{ width: '100%', marginTop: 8, fontSize: 15 }}
-                onClick={handleSubmit}
-                disabled={loading}
-              >
+              <button className="btn-primary" style={{ width: '100%', marginTop: 8, fontSize: 15 }} onClick={handleSubmit} disabled={loading}>
                 {loading ? 'Submitting…' : 'Submit Budget →'}
               </button>
             </div>
 
-            {/* Summary panel */}
             <div style={styles.summaryPanel}>
               <h3 style={styles.summaryTitle}>Live Summary</h3>
-
               <div style={styles.gauge}>
                 <div style={styles.gaugeBar}>
-                  <div style={{
-                    ...styles.gaugeFill,
-                    width: `${pct}%`,
-                    background: remaining < 0 ? 'var(--red)' : pct > 80 ? 'var(--yellow)' : 'var(--green)',
-                  }} />
+                  <div style={{ ...styles.gaugeFill, width: `${pct}%`, background: remaining < 0 ? 'var(--red)' : pct > 80 ? 'var(--yellow)' : 'var(--green)' }} />
                 </div>
                 <div style={styles.gaugeLabels}>
-                  <span style={{ color: 'var(--text-muted)' }}>0</span>
+                  <span style={{ color: 'var(--text-muted)' }}>$0</span>
                   <span style={{ color: 'var(--text-muted)' }}>${income.toLocaleString()}</span>
                 </div>
               </div>
@@ -138,12 +112,7 @@ export default function BudgetPage() {
                 <SummaryRow label="Income" value={`$${income.toLocaleString()}`} color="var(--green)" />
                 <SummaryRow label="Total Spent" value={`$${totalSpent.toFixed(2)}`} />
                 <div style={styles.divider} />
-                <SummaryRow
-                  label="Remaining"
-                  value={`${remaining < 0 ? '-' : ''}$${Math.abs(remaining).toFixed(2)}`}
-                  color={remaining < 0 ? 'var(--red)' : 'var(--blue)'}
-                  bold
-                />
+                <SummaryRow label="Remaining" value={`${remaining < 0 ? '-' : ''}$${Math.abs(remaining).toFixed(2)}`} color={remaining < 0 ? 'var(--red)' : 'var(--blue)'} bold />
               </div>
 
               {remaining < 0 && (
@@ -152,7 +121,6 @@ export default function BudgetPage() {
                 </div>
               )}
 
-              {/* Breakdown */}
               <div style={styles.breakdown}>
                 {categories.map(cat => {
                   const v = parseFloat(values[cat.key]) || 0;
@@ -171,12 +139,11 @@ export default function BudgetPage() {
             </div>
           </div>
         ) : (
-          /* Results */
           <div style={styles.resultCard}>
             <div style={styles.resultHeader}>
               <div style={styles.resultEmoji}>{result.budget.overspent ? '😬' : '✅'}</div>
               <h2 style={styles.resultTitle}>
-                {result.budget.overspent ? 'Month Complete — Overspent' : 'Month Complete — Well Done!'}
+                {result.budget.overspent ? 'Month Complete — Overspent!' : 'Month Complete — Well Done!'}
               </h2>
             </div>
 
@@ -187,7 +154,6 @@ export default function BudgetPage() {
               <ResultStat label="Remaining" value={`${result.budget.remaining < 0 ? '-' : ''}$${Math.abs(result.budget.remaining).toFixed(2)}`} color={result.budget.remaining < 0 ? 'var(--red)' : 'var(--green)'} />
             </div>
 
-            {/* Credit Score */}
             <div style={styles.creditBlock}>
               <h3 style={styles.creditTitle}>Credit Score Update</h3>
               <div style={styles.creditRow}>
@@ -201,12 +167,12 @@ export default function BudgetPage() {
               </div>
               <div style={styles.reasons}>
                 {result.credit.reasons.map((r, i) => (
-                  <p key={i} style={styles.reason}>{r}</p>
+                  <p key={i} style={styles.reason}>• {r}</p>
                 ))}
               </div>
             </div>
 
-            <button className="btn-primary" style={{ width: '100%', fontSize: 15 }} onClick={handleDone}>
+            <button className="btn-primary" style={{ width: '100%', fontSize: 15 }} onClick={() => navigate('/dashboard')}>
               Back to Dashboard →
             </button>
           </div>
@@ -236,11 +202,7 @@ function ResultStat({ label, value, color }) {
 
 const styles = {
   page: { minHeight: '100vh', background: 'var(--bg)' },
-  nav: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '16px 40px', borderBottom: '1px solid var(--border)',
-    background: 'var(--surface)',
-  },
+  nav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' },
   back: { background: 'none', color: 'var(--text-muted)', fontSize: 14, fontFamily: 'Inter', cursor: 'pointer', border: 'none' },
   navTitle: { fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16 },
   content: { maxWidth: 1000, margin: '0 auto', padding: '40px 24px' },
@@ -264,33 +226,21 @@ const styles = {
   summaryRows: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 },
   summaryRow: { display: 'flex', justifyContent: 'space-between', fontSize: 14 },
   divider: { height: 1, background: 'var(--border)', margin: '4px 0' },
-  warningBox: {
-    background: 'rgba(255,82,82,0.08)', border: '1px solid rgba(255,82,82,0.2)',
-    borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', marginBottom: 16,
-  },
+  warningBox: { background: 'rgba(255,82,82,0.08)', border: '1px solid rgba(255,82,82,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', marginBottom: 16 },
   breakdown: { marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 },
   breakdownRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 },
   breakdownBar: { flex: 1, height: 4, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' },
   breakdownFill: { height: '100%', background: 'var(--green)', borderRadius: 4, transition: 'width 0.3s' },
   breakdownPct: { width: 28, textAlign: 'right', color: 'var(--text-muted)' },
-  resultCard: {
-    background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: 16, padding: 40, maxWidth: 640, margin: '0 auto',
-  },
+  resultCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 40, maxWidth: 640, margin: '0 auto' },
   resultHeader: { textAlign: 'center', marginBottom: 32 },
   resultEmoji: { fontSize: 56, marginBottom: 12 },
   resultTitle: { fontSize: 22, fontWeight: 700 },
   resultGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 },
-  resultStat: {
-    background: 'var(--surface2)', borderRadius: 10, padding: '16px 20px',
-    border: '1px solid var(--border)',
-  },
+  resultStat: { background: 'var(--surface2)', borderRadius: 10, padding: '16px 20px', border: '1px solid var(--border)' },
   resultStatLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   resultStatValue: { fontSize: 22, fontFamily: 'Space Grotesk', fontWeight: 700 },
-  creditBlock: {
-    background: 'var(--surface2)', border: '1px solid var(--border)',
-    borderRadius: 10, padding: '20px 24px', marginBottom: 24,
-  },
+  creditBlock: { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, padding: '20px 24px', marginBottom: 24 },
   creditTitle: { fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-muted)' },
   creditRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 },
   creditScore: { fontSize: 40, fontFamily: 'Space Grotesk', fontWeight: 700 },

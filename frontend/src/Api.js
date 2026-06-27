@@ -1,22 +1,16 @@
 import axios from 'axios';
 
-// Create an axios instance pointing to your local FastAPI backend
-// (Change 8000 if your FastAPI backend runs on a different port like 8080)
 const API = axios.create({
-  baseURL: 'http://localhost:8000', 
+  baseURL: 'http://localhost:8000',
 });
 
-// Authentication Routes
-export const checkUsername = (username) => API.get(`/check-username?username=${username}`);
-export const signup = (username) => API.post('/signup', { username });
-export const login = (username) => API.post('/login', { username });
-
-// Simulation Routes
-export const startSimulation = (userId) => API.post('/simulation/start', { user_id: userId });
-export const getFunFact = () => API.get('/fun-fact');
-
-// Budget & Credit Score Routes
-export const submitBudget = (budgetData) => API.post('/budget/submit', budgetData);
-export const updateCreditScore = (simulationId) => API.post(`/credit/update/${simulationId}`);
+export const checkUsername = (username) => API.get(`/api/auth/check/${username}`);
+export const signup = (username) => API.post('/api/auth/signup', { username });
+export const login = (username) => API.post('/api/auth/login', { username });
+export const startSimulation = (userId) => API.post(`/api/simulation/start/${userId}`);
+export const getFunFact = () => API.get('/api/fun-fact');
+export const submitBudget = (budgetData) => API.post('/api/budget/submit', budgetData);
+export const updateCreditScore = (simulationId) => API.post(`/api/credit/update/${simulationId}`);
+export const triggerEvent = (simulationId, monthNumber) => API.post(`/api/events/trigger/${simulationId}/${monthNumber}`);
 
 export default API;

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { checkUsername, signup, login } from '../api';
+import { checkUsername, signup, login } from './Api';
 
 export default function AuthPage() {
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
-  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
+  const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -36,7 +36,6 @@ export default function AuthPage() {
 
   return (
     <div style={styles.page}>
-      {/* Left panel */}
       <div style={styles.left}>
         <div style={styles.logo}>
           <span style={styles.logoIcon}>$</span>
@@ -63,7 +62,6 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Right panel */}
       <div style={styles.right}>
         <div style={styles.card}>
           <div style={styles.tabs}>
@@ -100,9 +98,7 @@ export default function AuthPage() {
             </button>
 
             <p style={styles.hint}>
-              {mode === 'login'
-                ? "No account? "
-                : "Already have one? "}
+              {mode === 'login' ? "No account? " : "Already have one? "}
               <span
                 style={styles.hintLink}
                 onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}
@@ -118,10 +114,7 @@ export default function AuthPage() {
 }
 
 const styles = {
-  page: {
-    display: 'flex',
-    minHeight: '100vh',
-  },
+  page: { display: 'flex', minHeight: '100vh' },
   left: {
     flex: 1,
     background: 'linear-gradient(145deg, #0a0d0f 0%, #0d1a12 100%)',
@@ -131,151 +124,35 @@ const styles = {
     justifyContent: 'space-between',
     borderRight: '1px solid #1f2830',
   },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
+  logo: { display: 'flex', alignItems: 'center', gap: 10 },
   logoIcon: {
-    background: 'var(--green)',
-    color: '#000',
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: 'Space Grotesk',
-    fontWeight: 700,
-    fontSize: 18,
-    lineHeight: '32px',
-    textAlign: 'center',
+    background: 'var(--green)', color: '#000', width: 32, height: 32,
+    borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18,
+    lineHeight: '32px', textAlign: 'center',
   },
-  logoText: {
-    fontFamily: 'Space Grotesk',
-    fontWeight: 700,
-    fontSize: 18,
-    color: 'var(--text)',
-    letterSpacing: '-0.3px',
-  },
-  heroBlock: {
-    maxWidth: 460,
-  },
+  logoText: { fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18, color: 'var(--text)', letterSpacing: '-0.3px' },
+  heroBlock: { maxWidth: 460 },
   pill: {
-    display: 'inline-block',
-    background: 'var(--green-glow)',
-    color: 'var(--green)',
-    border: '1px solid rgba(0,230,118,0.2)',
-    borderRadius: 20,
-    padding: '4px 14px',
-    fontSize: 12,
-    fontWeight: 600,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginBottom: 20,
+    display: 'inline-block', background: 'var(--green-glow)', color: 'var(--green)',
+    border: '1px solid rgba(0,230,118,0.2)', borderRadius: 20, padding: '4px 14px',
+    fontSize: 12, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 20,
   },
-  heroTitle: {
-    fontSize: 52,
-    fontWeight: 700,
-    lineHeight: 1.1,
-    letterSpacing: '-1.5px',
-    marginBottom: 20,
-    color: 'var(--text)',
-  },
-  heroAccent: {
-    color: 'var(--green)',
-  },
-  heroSub: {
-    fontSize: 16,
-    color: 'var(--text-muted)',
-    lineHeight: 1.7,
-    maxWidth: 380,
-  },
-  stats: {
-    display: 'flex',
-    gap: 40,
-  },
-  stat: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  statNum: {
-    fontFamily: 'Space Grotesk',
-    fontSize: 32,
-    fontWeight: 700,
-    color: 'var(--green)',
-    lineHeight: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'var(--text-muted)',
-    marginTop: 4,
-  },
-  right: {
-    width: 440,
-    background: 'var(--bg)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-  },
-  card: {
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 16,
-    padding: 36,
-    width: '100%',
-  },
-  tabs: {
-    display: 'flex',
-    background: 'var(--surface2)',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 28,
-    gap: 4,
-  },
-  tab: {
-    flex: 1,
-    padding: '9px 0',
-    borderRadius: 6,
-    background: 'transparent',
-    color: 'var(--text-muted)',
-    fontSize: 13,
-    fontWeight: 600,
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-  },
-  tabActive: {
-    background: 'var(--border)',
-    color: 'var(--text)',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  error: {
-    color: 'var(--red)',
-    fontSize: 12,
-    marginBottom: 16,
-  },
-  hint: {
-    textAlign: 'center',
-    marginTop: 16,
-    color: 'var(--text-muted)',
-    fontSize: 13,
-  },
-  hintLink: {
-    color: 'var(--green)',
-    cursor: 'pointer',
-    fontWeight: 600,
-  },
+  heroTitle: { fontSize: 52, fontWeight: 700, lineHeight: 1.1, letterSpacing: '-1.5px', marginBottom: 20, color: 'var(--text)' },
+  heroAccent: { color: 'var(--green)' },
+  heroSub: { fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: 380 },
+  stats: { display: 'flex', gap: 40 },
+  stat: { display: 'flex', flexDirection: 'column' },
+  statNum: { fontFamily: 'Space Grotesk', fontSize: 32, fontWeight: 700, color: 'var(--green)', lineHeight: 1 },
+  statLabel: { fontSize: 12, color: 'var(--text-muted)', marginTop: 4 },
+  right: { width: 440, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 },
+  card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 36, width: '100%' },
+  tabs: { display: 'flex', background: 'var(--surface2)', borderRadius: 8, padding: 4, marginBottom: 28, gap: 4 },
+  tab: { flex: 1, padding: '9px 0', borderRadius: 6, background: 'transparent', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.15s' },
+  tabActive: { background: 'var(--border)', color: 'var(--text)' },
+  form: { display: 'flex', flexDirection: 'column' },
+  label: { fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  error: { color: 'var(--red)', fontSize: 12, marginBottom: 16 },
+  hint: { textAlign: 'center', marginTop: 16, color: 'var(--text-muted)', fontSize: 13 },
+  hintLink: { color: 'var(--green)', cursor: 'pointer', fontWeight: 600 },
 };
