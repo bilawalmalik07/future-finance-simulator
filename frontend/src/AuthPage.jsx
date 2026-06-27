@@ -80,7 +80,7 @@ export default function AuthPage() {
             <label style={styles.label}>Username</label>
             <input
               className="input-field"
-              placeholder="e.g. alex_budget"
+              placeholder=""
               value={username}
               onChange={e => setUsername(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}

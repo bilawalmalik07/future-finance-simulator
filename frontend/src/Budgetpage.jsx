@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { submitBudget, updateCreditScore } from './Api';
+import { submitBudget, updateCreditScore, triggerEvent } from './Api';
 
 const categories = [
   { key: 'housing', label: 'Housing', icon: '🏠', hint: 'Rent or mortgage' },
@@ -38,12 +38,26 @@ export default function BudgetPage() {
       parsed[k] = parseFloat(values[k]) || 0;
     }
     setLoading(true);
-    try {
+    try{
+      // 1. Submit budget
       const res = await submitBudget({ simulation_id: sim.id, month_number: month, ...parsed });
       const budgetResult = res.data.budget;
+
+      // 2. Update credit score
       const creditRes = await updateCreditScore(sim.id);
-      setResult({ budget: budgetResult, credit: creditRes.data.credit });
-      localStorage.setItem('currentMonth', String(month + 1));
+
+      // 3. Trigger random event
+      const eventRes = await triggerEvent(sim.id, month);
+
+      setResult({
+        budget: budgetResult,
+        credit: creditRes.data.credit,
+        event: eventRes.data.event
+      });
+
+      // 4. Advance month (cap at 13 so dashboard shows game over)
+      const nextMonth = month + 1;
+      localStorage.setItem('currentMonth', String(nextMonth));
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to submit budget.');
     }
@@ -154,6 +168,27 @@ export default function BudgetPage() {
               <ResultStat label="Remaining" value={`${result.budget.remaining < 0 ? '-' : ''}$${Math.abs(result.budget.remaining).toFixed(2)}`} color={result.budget.remaining < 0 ? 'var(--red)' : 'var(--green)'} />
             </div>
 
+            {/* Emergency Event */}
+            {result.event && (
+              <div style={styles.eventCard}>
+                <span style={styles.eventIcon}>⚡</span>
+                <div>
+                  <p style={styles.eventName}>{result.event.name}</p>
+                  <p style={styles.eventDesc}>{result.event.description}</p>
+                  <p style={styles.eventCost}>Cost: -${result.event.cost.toLocaleString()} from savings</p>
+                  <p style={styles.eventSavings}>New savings: ${result.event.new_savings.toLocaleString()}</p>
+                </div>
+              </div>
+            )}
+
+            {!result.event && (
+              <div style={styles.noEventCard}>
+                <span>🍀</span>
+                <p>No emergency this month — lucky you!</p>
+              </div>
+            )}
+
+            {/* Credit Score */}
             <div style={styles.creditBlock}>
               <h3 style={styles.creditTitle}>Credit Score Update</h3>
               <div style={styles.creditRow}>
@@ -173,7 +208,7 @@ export default function BudgetPage() {
             </div>
 
             <button className="btn-primary" style={{ width: '100%', fontSize: 15 }} onClick={() => navigate('/dashboard')}>
-              Back to Dashboard →
+              {month >= 12 ? 'See Final Report →' : 'Next Month →'}
             </button>
           </div>
         )}
@@ -221,7 +256,7 @@ const styles = {
   summaryTitle: { fontSize: 16, fontWeight: 700, marginBottom: 20 },
   gauge: { marginBottom: 24 },
   gaugeBar: { height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
-  gaugeFill: { height: '100%', borderRadius: 4, transition: 'width 0.3s ease, background 0.3s' },
+  gaugeFill: { height: '100%', borderRadius: 4, transition: 'width 0.3s ease' },
   gaugeLabels: { display: 'flex', justifyContent: 'space-between', fontSize: 11 },
   summaryRows: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 },
   summaryRow: { display: 'flex', justifyContent: 'space-between', fontSize: 14 },
@@ -236,10 +271,17 @@ const styles = {
   resultHeader: { textAlign: 'center', marginBottom: 32 },
   resultEmoji: { fontSize: 56, marginBottom: 12 },
   resultTitle: { fontSize: 22, fontWeight: 700 },
-  resultGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 },
+  resultGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
   resultStat: { background: 'var(--surface2)', borderRadius: 10, padding: '16px 20px', border: '1px solid var(--border)' },
   resultStatLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   resultStatValue: { fontSize: 22, fontFamily: 'Space Grotesk', fontWeight: 700 },
+  eventCard: { background: 'rgba(255,215,64,0.08)', border: '1px solid rgba(255,215,64,0.25)', borderRadius: 10, padding: '16px 20px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-start' },
+  eventIcon: { fontSize: 28, flexShrink: 0 },
+  eventName: { fontFamily: 'Space Grotesk', fontWeight: 700, color: 'var(--yellow)', marginBottom: 4 },
+  eventDesc: { fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 },
+  eventCost: { fontSize: 13, color: 'var(--red)', fontWeight: 600 },
+  eventSavings: { fontSize: 13, color: 'var(--green)', marginTop: 2 },
+  noEventCard: { background: 'rgba(0,230,118,0.06)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: 10, padding: '12px 20px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', fontSize: 13, color: 'var(--text-muted)' },
   creditBlock: { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, padding: '20px 24px', marginBottom: 24 },
   creditTitle: { fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-muted)' },
   creditRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 },

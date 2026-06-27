@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [sim, setSim] = useState(null);
   const [fact, setFact] = useState('');
   const [loading, setLoading] = useState(false);
+  const [month, setMonth] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function Dashboard() {
     setUser(JSON.parse(stored));
     const storedSim = localStorage.getItem('simulation');
     if (storedSim) setSim(JSON.parse(storedSim));
+    setMonth(parseInt(localStorage.getItem('currentMonth') || '1'));
     getFunFact().then(r => setFact(r.data.fact)).catch(() => {});
   }, []);
 
@@ -32,10 +34,18 @@ export default function Dashboard() {
       localStorage.setItem('simulation', JSON.stringify(simulation));
       localStorage.setItem('currentMonth', '1');
       setSim(simulation);
+      setMonth(1);
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
+  }
+
+  function handleRestart() {
+    localStorage.removeItem('simulation');
+    localStorage.removeItem('currentMonth');
+    setSim(null);
+    setMonth(1);
   }
 
   function handleLogout() {
@@ -43,7 +53,7 @@ export default function Dashboard() {
     navigate('/');
   }
 
-  const month = parseInt(localStorage.getItem('currentMonth') || '1');
+  const gameOver = month > 12;
 
   return (
     <div style={styles.page}>
@@ -81,15 +91,38 @@ export default function Dashboard() {
               You'll be assigned a random career, salary, and city.<br />
               Then manage your budget across 12 simulated months.
             </p>
-            <button
-              className="btn-primary"
-              style={{ fontSize: 16, padding: '14px 40px' }}
-              onClick={handleStartSim}
-              disabled={loading}
-            >
+            <button className="btn-primary" style={{ fontSize: 16, padding: '14px 40px' }} onClick={handleStartSim} disabled={loading}>
               {loading ? 'Assigning career…' : '🚀 Start Simulation'}
             </button>
           </div>
+
+        ) : gameOver ? (
+          /* Game Over Screen */
+          <div style={styles.gameOverCard}>
+            <div style={styles.gameOverEmoji}>🏁</div>
+            <h2 style={styles.gameOverTitle}>Simulation Complete!</h2>
+            <p style={styles.gameOverSub}>
+              You completed 12 months as a <strong style={{ color: 'var(--green)' }}>{sim.job}</strong> in {sim.location}.
+            </p>
+            <div style={styles.gameOverStats}>
+              <div style={styles.gameOverStat}>
+                <p style={styles.gameOverStatLabel}>Career</p>
+                <p style={styles.gameOverStatValue}>{jobIcons[sim.job]} {sim.job}</p>
+              </div>
+              <div style={styles.gameOverStat}>
+                <p style={styles.gameOverStatLabel}>Annual Salary</p>
+                <p style={styles.gameOverStatValue} >${sim.salary.toLocaleString()}</p>
+              </div>
+              <div style={styles.gameOverStat}>
+                <p style={styles.gameOverStatLabel}>Location</p>
+                <p style={styles.gameOverStatValue}>📍 {sim.location}</p>
+              </div>
+            </div>
+            <button className="btn-primary" style={{ fontSize: 16, padding: '14px 40px', marginTop: 8 }} onClick={handleRestart}>
+              🔄 Play Again
+            </button>
+          </div>
+
         ) : (
           <>
             <div style={styles.careerCard}>
@@ -120,7 +153,7 @@ export default function Dashboard() {
 
             <div style={styles.actions}>
               <ActionCard icon="💰" title="Submit Budget" sub={`Allocate your month ${month} income`} onClick={() => navigate('/budget')} primary />
-              <ActionCard icon="⚡" title="Random Event" sub="Trigger this month's life event" onClick={() => navigate('/event')} />
+              <ActionCard icon="🔄" title="Restart Simulation" sub="Start fresh with a new career" onClick={handleRestart} />
             </div>
           </>
         )}
@@ -168,6 +201,14 @@ const styles = {
   startEmoji: { fontSize: 64, marginBottom: 20 },
   startTitle: { fontSize: 26, fontWeight: 700, marginBottom: 12 },
   startSub: { color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 32 },
+  gameOverCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '64px 40px', textAlign: 'center' },
+  gameOverEmoji: { fontSize: 72, marginBottom: 20 },
+  gameOverTitle: { fontSize: 32, fontWeight: 700, marginBottom: 12 },
+  gameOverSub: { color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.7, marginBottom: 32 },
+  gameOverStats: { display: 'flex', justifyContent: 'center', gap: 40, marginBottom: 32, flexWrap: 'wrap' },
+  gameOverStat: { textAlign: 'center' },
+  gameOverStatLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  gameOverStatValue: { fontSize: 18, fontFamily: 'Space Grotesk', fontWeight: 700 },
   careerCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 20 },
   careerLeft: { display: 'flex', alignItems: 'center', gap: 20 },
   jobEmoji: { fontSize: 48 },
