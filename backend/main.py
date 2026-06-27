@@ -104,7 +104,22 @@ facts = [
     "Only 40% of Americans have enough savings for a $1,000 emergency",
     "Credit card debt in the US is over $1 trillion",
     "Saving just $5 a day = $1,825 a year",
-    "Most millionaires drive used cars"
+    "Most millionaires drive used cars",
+    "78% of Americans live paycheck to paycheck",
+    "The average student loan debt in the US is over $37,000",
+    "Compound interest can double your money every 7-10 years",
+    "Americans spend an average of $300/month eating out",
+    "Having a budget makes you 20% more likely to reach financial goals",
+    "The average car payment in the US is over $700/month",
+    "Experts recommend keeping housing costs under 30% of your income",
+    "Only 1 in 3 Americans tracks their spending regularly",
+    "The 50/30/20 rule: 50% needs, 30% wants, 20% savings",
+    "A credit score above 750 can save you thousands on loan interest",
+    "The average American has 4 credit cards",
+    "An emergency fund should cover 3-6 months of expenses",
+    "Investing $100/month at 7% return = $120,000 in 30 years",
+    "Americans waste an average of $500/year on unused subscriptions",
+    "People with written financial goals are 42% more likely to achieve them",
 ]
 
 
@@ -126,6 +141,21 @@ careers = [
     {"job": "Accountant", "salary": 68000, "tax_rate": 0.18},
     {"job": "Chef", "salary": 42000, "tax_rate": 0.12},
     {"job": "Pharmacist", "salary": 88000, "tax_rate": 0.20},
+    {"job": "Data Scientist", "salary": 105000, "tax_rate": 0.24},
+    {"job": "Firefighter", "salary": 53000, "tax_rate": 0.15},
+    {"job": "Dentist", "salary": 150000, "tax_rate": 0.28},
+    {"job": "Plumber", "salary": 61000, "tax_rate": 0.16},
+    {"job": "Marketing Manager", "salary": 78000, "tax_rate": 0.20},
+    {"job": "Lawyer", "salary": 120000, "tax_rate": 0.26},
+    {"job": "Journalist", "salary": 48000, "tax_rate": 0.13},
+    {"job": "Architect", "salary": 85000, "tax_rate": 0.21},
+    {"job": "Social Worker", "salary": 40000, "tax_rate": 0.12},
+    {"job": "Pilot", "salary": 130000, "tax_rate": 0.26},
+    {"job": "Real Estate Agent", "salary": 67000, "tax_rate": 0.18},
+    {"job": "Mechanic", "salary": 50000, "tax_rate": 0.14},
+    {"job": "Veterinarian", "salary": 98000, "tax_rate": 0.22},
+    {"job": "UX Designer", "salary": 90000, "tax_rate": 0.21},
+    {"job": "Truck Driver", "salary": 55000, "tax_rate": 0.15},
 ]
 
 locations = ["Chicago", "New York", "Austin", "Seattle", "Denver", "Miami"]
@@ -186,7 +216,20 @@ def submit_budget(data: BudgetRequest):
     total_spent = round(data.housing + data.transport +
                         data.food + data.utilities + data.entertainment, 2)
     remaining = round(monthly_income - total_spent, 2)
-    savings = remaining if remaining > 0 else 0
+
+    # Get last month savings balance as running total
+    cursor.execute("""
+        SELECT savings FROM budgets
+        WHERE simulation_id = %s AND month_number < %s
+        ORDER BY month_number DESC
+        LIMIT 1
+    """, (data.simulation_id, data.month_number))
+    prev_row = cursor.fetchone()
+    prev_savings = float(prev_row[0]) if prev_row else 0.0
+
+    # Running balance: carry forward + this month (can go negative = debt)
+    savings = round(prev_savings + remaining, 2)
+    in_debt = savings < 0
 
     try:
         cursor.execute("""
@@ -205,7 +248,9 @@ def submit_budget(data: BudgetRequest):
                 "total_spent": total_spent,
                 "savings": savings,
                 "remaining": remaining,
-                "overspent": remaining < 0
+                "overspent": remaining < 0,
+                "in_debt": in_debt,
+                "debt_amount": abs(savings) if in_debt else 0
             }
         }
     except Exception as e:
@@ -281,6 +326,9 @@ def update_credit_score(simulation_id: int):
     if savings > 0:
         change += 10
         reasons.append("Has savings +10")
+    elif savings < 0:
+        change -= 40
+        reasons.append(f"In debt (${abs(savings):.0f} owed) -40")
     else:
         change -= 20
         reasons.append("No savings -20")
@@ -346,10 +394,44 @@ emergency_events = [
         "description": "Your phone was stolen and needs replacement."},
     {"name": "Family Emergency", "cost": 1000,
         "description": "A family member needed urgent financial help."},
-    {"name": "Job Loss", "cost": 0,
-        "description": "You lost your job this month! No income."},
     {"name": "Pet Emergency", "cost": 700,
         "description": "Your pet needed emergency vet care."},
+    {"name": "Roof Leak", "cost": 1800,
+        "description": "A leaking roof needs immediate patching before it gets worse."},
+    {"name": "Identity Theft", "cost": 900,
+        "description": "Someone stole your identity and drained part of your account."},
+    {"name": "Speeding Ticket", "cost": 350,
+        "description": "You got pulled over and hit with a fine plus traffic school fees."},
+    {"name": "Dental Emergency", "cost": 1200,
+        "description": "A cracked tooth needs urgent dental work — no insurance coverage."},
+    {"name": "Apartment Break-In", "cost": 750,
+        "description": "Your place was broken into. New locks, door, and lost items add up."},
+    {"name": "Appliance Failure", "cost": 500,
+        "description": "Your refrigerator or washing machine broke down suddenly."},
+    {"name": "Parking Tickets", "cost": 250,
+        "description": "A stack of ignored parking tickets came back to haunt you."},
+    {"name": "Flight Cancellation", "cost": 600,
+        "description": "A last-minute trip for a family matter cost you big in rebooking fees."},
+    {"name": "Flooded Basement", "cost": 2500,
+        "description": "Heavy rain flooded your basement — cleanup and repairs aren't cheap."},
+    {"name": "Tax Surprise", "cost": 1100,
+        "description": "You owe more taxes than expected this quarter."},
+    {"name": "Bike Stolen", "cost": 400,
+        "description": "Your main way to get around was stolen overnight."},
+    {"name": "Food Poisoning", "cost": 800,
+        "description": "A bad meal sent you to urgent care and cost you a sick day of pay."},
+    {"name": "Utility Spike", "cost": 300,
+        "description": "An extreme weather month sent your electric bill through the roof."},
+    {"name": "Lawsuit Fee", "cost": 1500,
+        "description": "A minor dispute required a lawyer and court filing fees."},
+    {"name": "Moving Costs", "cost": 1300,
+        "description": "Your landlord raised rent and you had to move — movers aren't free."},
+    {"name": "Glasses Broken", "cost": 350,
+        "description": "Your prescription glasses snapped and need immediate replacement."},
+    {"name": "Water Heater Bust", "cost": 900,
+        "description": "No hot water until you replace the water heater — can't wait."},
+    {"name": "Tree Damage", "cost": 1600,
+        "description": "A storm knocked a tree onto your property, causing damage."},
 ]
 
 

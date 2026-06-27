@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitBudget, updateCreditScore, triggerEvent } from './Api';
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return isMobile;
+}
+
 const categories = [
   { key: 'housing', label: 'Housing', icon: '🏠', hint: 'Rent or mortgage' },
   { key: 'transport', label: 'Transport', icon: '🚗', hint: 'Car, gas, or transit' },
@@ -18,6 +28,7 @@ export default function BudgetPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const s = localStorage.getItem('simulation');
@@ -34,30 +45,14 @@ export default function BudgetPage() {
   async function handleSubmit() {
     setError('');
     const parsed = {};
-    for (const k of categories.map(c => c.key)) {
-      parsed[k] = parseFloat(values[k]) || 0;
-    }
+    for (const k of categories.map(c => c.key)) parsed[k] = parseFloat(values[k]) || 0;
     setLoading(true);
-    try{
-      // 1. Submit budget
+    try {
       const res = await submitBudget({ simulation_id: sim.id, month_number: month, ...parsed });
-      const budgetResult = res.data.budget;
-
-      // 2. Update credit score
       const creditRes = await updateCreditScore(sim.id);
-
-      // 3. Trigger random event
       const eventRes = await triggerEvent(sim.id, month);
-
-      setResult({
-        budget: budgetResult,
-        credit: creditRes.data.credit,
-        event: eventRes.data.event
-      });
-
-      // 4. Advance month (cap at 13 so dashboard shows game over)
-      const nextMonth = month + 1;
-      localStorage.setItem('currentMonth', String(nextMonth));
+      setResult({ budget: res.data.budget, credit: creditRes.data.credit, event: eventRes.data.event });
+      localStorage.setItem('currentMonth', String(month + 1));
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to submit budget.');
     }
@@ -67,34 +62,33 @@ export default function BudgetPage() {
   if (!sim) return null;
 
   return (
-    <div style={styles.page}>
-      <nav style={styles.nav}>
-        <button style={styles.back} onClick={() => navigate('/dashboard')}>← Dashboard</button>
-        <span style={styles.navTitle}>Month {month} Budget</span>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '12px 16px' : '16px 40px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <button style={{ background: 'none', color: 'var(--text-muted)', fontSize: 14, fontFamily: 'Inter', cursor: 'pointer', border: 'none' }} onClick={() => navigate('/dashboard')}>← Dashboard</button>
+        <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16 }}>Month {month} Budget</span>
         <div />
       </nav>
 
-      <div style={styles.content}>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: isMobile ? '20px 16px' : '40px 24px' }}>
         {!result ? (
-          <div style={styles.layout}>
-            <div style={styles.formSide}>
-              <h2 style={styles.title}>Allocate your income</h2>
-              <p style={styles.sub}>Monthly take-home: <strong style={{ color: 'var(--green)' }}>${income.toLocaleString()}</strong></p>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
+            {/* Form */}
+            <div>
+              <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, marginBottom: 6 }}>Allocate your income</h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>Monthly take-home: <strong style={{ color: 'var(--green)' }}>${income.toLocaleString()}</strong></p>
 
-              <div style={styles.fields}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
                 {categories.map(cat => (
-                  <div key={cat.key} style={styles.field}>
-                    <div style={styles.fieldHeader}>
+                  <div key={cat.key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>
                       <span>{cat.icon} {cat.label}</span>
-                      <span style={styles.fieldHint}>{cat.hint}</span>
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{cat.hint}</span>
                     </div>
-                    <div style={styles.inputWrap}>
-                      <span style={styles.dollar}>$</span>
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }}>$</span>
                       <input
                         className="input-field"
-                        type="number"
-                        min="0"
-                        placeholder="0"
+                        type="number" min="0" placeholder="0"
                         value={values[cat.key]}
                         onChange={e => setValues(p => ({ ...p, [cat.key]: e.target.value }))}
                         style={{ paddingLeft: 32, borderRadius: 8 }}
@@ -104,105 +98,107 @@ export default function BudgetPage() {
                 ))}
               </div>
 
-              {error && <p style={styles.error}>{error}</p>}
-              <button className="btn-primary" style={{ width: '100%', marginTop: 8, fontSize: 15 }} onClick={handleSubmit} disabled={loading}>
+              {error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+              <button className="btn-primary" style={{ width: '100%', fontSize: 15 }} onClick={handleSubmit} disabled={loading}>
                 {loading ? 'Submitting…' : 'Submit Budget →'}
               </button>
             </div>
 
-            <div style={styles.summaryPanel}>
-              <h3 style={styles.summaryTitle}>Live Summary</h3>
-              <div style={styles.gauge}>
-                <div style={styles.gaugeBar}>
-                  <div style={{ ...styles.gaugeFill, width: `${pct}%`, background: remaining < 0 ? 'var(--red)' : pct > 80 ? 'var(--yellow)' : 'var(--green)' }} />
+            {/* Summary — on mobile shows below form */}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: isMobile ? 20 : 28 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Live Summary</h3>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+                  <div style={{ height: '100%', borderRadius: 4, transition: 'width 0.3s ease', width: `${pct}%`, background: remaining < 0 ? 'var(--red)' : pct > 80 ? 'var(--yellow)' : 'var(--green)' }} />
                 </div>
-                <div style={styles.gaugeLabels}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
                   <span style={{ color: 'var(--text-muted)' }}>$0</span>
                   <span style={{ color: 'var(--text-muted)' }}>${income.toLocaleString()}</span>
                 </div>
               </div>
 
-              <div style={styles.summaryRows}>
-                <SummaryRow label="Income" value={`$${income.toLocaleString()}`} color="var(--green)" />
-                <SummaryRow label="Total Spent" value={`$${totalSpent.toFixed(2)}`} />
-                <div style={styles.divider} />
-                <SummaryRow label="Remaining" value={`${remaining < 0 ? '-' : ''}$${Math.abs(remaining).toFixed(2)}`} color={remaining < 0 ? 'var(--red)' : 'var(--blue)'} bold />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                {[['Income', `$${income.toLocaleString()}`, 'var(--green)', false], ['Total Spent', `$${totalSpent.toFixed(2)}`, null, false], null, ['Remaining', `${remaining < 0 ? '-' : ''}$${Math.abs(remaining).toFixed(2)}`, remaining < 0 ? 'var(--red)' : 'var(--blue)', true]].map((row, i) =>
+                  row === null ? <div key={i} style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} /> :
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{row[0]}</span>
+                    <span style={{ color: row[2] || 'var(--text)', fontWeight: row[3] ? 700 : 500 }}>{row[1]}</span>
+                  </div>
+                )}
               </div>
 
               {remaining < 0 && (
-                <div style={styles.warningBox}>
+                <div style={{ background: 'rgba(255,82,82,0.08)', border: '1px solid rgba(255,82,82,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', marginBottom: 16 }}>
                   ⚠️ You're overspending by ${Math.abs(remaining).toFixed(2)}. This will hurt your credit score.
                 </div>
               )}
 
-              <div style={styles.breakdown}>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {categories.map(cat => {
                   const v = parseFloat(values[cat.key]) || 0;
                   const p = income > 0 ? (v / income) * 100 : 0;
                   return (
-                    <div key={cat.key} style={styles.breakdownRow}>
+                    <div key={cat.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                       <span>{cat.icon} {cat.label}</span>
-                      <div style={styles.breakdownBar}>
-                        <div style={{ ...styles.breakdownFill, width: `${Math.min(p, 100)}%` }} />
+                      <div style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: 'var(--green)', borderRadius: 4, width: `${Math.min(p, 100)}%`, transition: 'width 0.3s' }} />
                       </div>
-                      <span style={styles.breakdownPct}>{p.toFixed(0)}%</span>
+                      <span style={{ width: 28, textAlign: 'right', color: 'var(--text-muted)' }}>{p.toFixed(0)}%</span>
                     </div>
                   );
                 })}
               </div>
             </div>
           </div>
+
         ) : (
-          <div style={styles.resultCard}>
-            <div style={styles.resultHeader}>
-              <div style={styles.resultEmoji}>{result.budget.overspent ? '😬' : '✅'}</div>
-              <h2 style={styles.resultTitle}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: isMobile ? 20 : 40, maxWidth: 640, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>{result.budget.overspent ? '😬' : '✅'}</div>
+              <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700 }}>
                 {result.budget.overspent ? 'Month Complete — Overspent!' : 'Month Complete — Well Done!'}
               </h2>
             </div>
 
-            <div style={styles.resultGrid}>
-              <ResultStat label="Monthly Income" value={`$${result.budget.monthly_income.toLocaleString()}`} color="var(--green)" />
-              <ResultStat label="Total Spent" value={`$${result.budget.total_spent.toLocaleString()}`} color={result.budget.overspent ? 'var(--red)' : 'var(--text)'} />
-              <ResultStat label="Savings" value={`$${result.budget.savings.toLocaleString()}`} color="var(--blue)" />
-              <ResultStat label="Remaining" value={`${result.budget.remaining < 0 ? '-' : ''}$${Math.abs(result.budget.remaining).toFixed(2)}`} color={result.budget.remaining < 0 ? 'var(--red)' : 'var(--green)'} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+              {[['Monthly Income', `$${result.budget.monthly_income.toLocaleString()}`, 'var(--green)'], ['Total Spent', `$${result.budget.total_spent.toLocaleString()}`, result.budget.overspent ? 'var(--red)' : 'var(--text)'], ['Savings', `$${result.budget.savings.toLocaleString()}`, 'var(--blue)'], ['Remaining', `${result.budget.remaining < 0 ? '-' : ''}$${Math.abs(result.budget.remaining).toFixed(2)}`, result.budget.remaining < 0 ? 'var(--red)' : 'var(--green)']].map(([label, value, color]) => (
+                <div key={label} style={{ background: 'var(--surface2)', borderRadius: 10, padding: isMobile ? '12px 14px' : '16px 20px', border: '1px solid var(--border)' }}>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{label}</p>
+                  <p style={{ fontSize: isMobile ? 18 : 22, fontFamily: 'Space Grotesk', fontWeight: 700, color }}>{value}</p>
+                </div>
+              ))}
             </div>
 
-            {/* Emergency Event */}
-            {result.event && (
-              <div style={styles.eventCard}>
-                <span style={styles.eventIcon}>⚡</span>
+            {result.event ? (
+              <div style={{ background: 'rgba(255,215,64,0.08)', border: '1px solid rgba(255,215,64,0.25)', borderRadius: 10, padding: '16px 20px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>⚡</span>
                 <div>
-                  <p style={styles.eventName}>{result.event.name}</p>
-                  <p style={styles.eventDesc}>{result.event.description}</p>
-                  <p style={styles.eventCost}>Cost: -${result.event.cost.toLocaleString()} from savings</p>
-                  <p style={styles.eventSavings}>New savings: ${result.event.new_savings.toLocaleString()}</p>
+                  <p style={{ fontFamily: 'Space Grotesk', fontWeight: 700, color: 'var(--yellow)', marginBottom: 4 }}>{result.event.name}</p>
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>{result.event.description}</p>
+                  <p style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>Cost: -${result.event.cost.toLocaleString()} from savings</p>
+                  <p style={{ fontSize: 13, color: 'var(--green)', marginTop: 2 }}>New savings: ${result.event.new_savings.toLocaleString()}</p>
                 </div>
               </div>
-            )}
-
-            {!result.event && (
-              <div style={styles.noEventCard}>
-                <span>🍀</span>
-                <p>No emergency this month — lucky you!</p>
+            ) : (
+              <div style={{ background: 'rgba(0,230,118,0.06)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: 10, padding: '12px 20px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
+                <span>🍀</span><p>No emergency this month — lucky you!</p>
               </div>
             )}
 
-            {/* Credit Score */}
-            <div style={styles.creditBlock}>
-              <h3 style={styles.creditTitle}>Credit Score Update</h3>
-              <div style={styles.creditRow}>
-                <span style={styles.creditScore}>{result.credit.new_score}</span>
-                <span style={{ ...styles.creditChange, color: result.credit.change >= 0 ? 'var(--green)' : 'var(--red)' }}>
+            <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, padding: '20px 24px', marginBottom: 24 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-muted)' }}>Credit Score Update</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <span style={{ fontSize: 40, fontFamily: 'Space Grotesk', fontWeight: 700 }}>{result.credit.new_score}</span>
+                <span style={{ fontSize: 20, fontWeight: 600, color: result.credit.change >= 0 ? 'var(--green)' : 'var(--red)' }}>
                   {result.credit.change >= 0 ? '+' : ''}{result.credit.change}
                 </span>
-                <span className={`tag tag-${result.credit.rating === 'Legendary' ? 'green' : result.credit.rating === 'Excellent' ? 'green' : result.credit.rating === 'Good' ? 'blue' : result.credit.rating === 'Fair' ? 'yellow' : 'red'}`}>
+                <span className={`tag tag-${result.credit.rating === 'Legendary' || result.credit.rating === 'Excellent' ? 'green' : result.credit.rating === 'Good' ? 'blue' : result.credit.rating === 'Fair' ? 'yellow' : 'red'}`}>
                   {result.credit.rating}
                 </span>
               </div>
-              <div style={styles.reasons}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {result.credit.reasons.map((r, i) => (
-                  <p key={i} style={styles.reason}>• {r}</p>
+                  <p key={i} style={{ fontSize: 12, color: 'var(--text-muted)' }}>• {r}</p>
                 ))}
               </div>
             </div>
@@ -216,77 +212,3 @@ export default function BudgetPage() {
     </div>
   );
 }
-
-function SummaryRow({ label, value, color, bold }) {
-  return (
-    <div style={styles.summaryRow}>
-      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ color: color || 'var(--text)', fontWeight: bold ? 700 : 500 }}>{value}</span>
-    </div>
-  );
-}
-
-function ResultStat({ label, value, color }) {
-  return (
-    <div style={styles.resultStat}>
-      <p style={styles.resultStatLabel}>{label}</p>
-      <p style={{ ...styles.resultStatValue, color: color || 'var(--text)' }}>{value}</p>
-    </div>
-  );
-}
-
-const styles = {
-  page: { minHeight: '100vh', background: 'var(--bg)' },
-  nav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' },
-  back: { background: 'none', color: 'var(--text-muted)', fontSize: 14, fontFamily: 'Inter', cursor: 'pointer', border: 'none' },
-  navTitle: { fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16 },
-  content: { maxWidth: 1000, margin: '0 auto', padding: '40px 24px' },
-  layout: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 },
-  formSide: {},
-  title: { fontSize: 24, fontWeight: 700, marginBottom: 6 },
-  sub: { color: 'var(--text-muted)', marginBottom: 28 },
-  fields: { display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 },
-  field: {},
-  fieldHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, fontWeight: 500 },
-  fieldHint: { color: 'var(--text-muted)', fontWeight: 400 },
-  inputWrap: { position: 'relative' },
-  dollar: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 },
-  error: { color: 'var(--red)', fontSize: 13, marginBottom: 12 },
-  summaryPanel: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 },
-  summaryTitle: { fontSize: 16, fontWeight: 700, marginBottom: 20 },
-  gauge: { marginBottom: 24 },
-  gaugeBar: { height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
-  gaugeFill: { height: '100%', borderRadius: 4, transition: 'width 0.3s ease' },
-  gaugeLabels: { display: 'flex', justifyContent: 'space-between', fontSize: 11 },
-  summaryRows: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 },
-  summaryRow: { display: 'flex', justifyContent: 'space-between', fontSize: 14 },
-  divider: { height: 1, background: 'var(--border)', margin: '4px 0' },
-  warningBox: { background: 'rgba(255,82,82,0.08)', border: '1px solid rgba(255,82,82,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--red)', marginBottom: 16 },
-  breakdown: { marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 },
-  breakdownRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 },
-  breakdownBar: { flex: 1, height: 4, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' },
-  breakdownFill: { height: '100%', background: 'var(--green)', borderRadius: 4, transition: 'width 0.3s' },
-  breakdownPct: { width: 28, textAlign: 'right', color: 'var(--text-muted)' },
-  resultCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 40, maxWidth: 640, margin: '0 auto' },
-  resultHeader: { textAlign: 'center', marginBottom: 32 },
-  resultEmoji: { fontSize: 56, marginBottom: 12 },
-  resultTitle: { fontSize: 22, fontWeight: 700 },
-  resultGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
-  resultStat: { background: 'var(--surface2)', borderRadius: 10, padding: '16px 20px', border: '1px solid var(--border)' },
-  resultStatLabel: { fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  resultStatValue: { fontSize: 22, fontFamily: 'Space Grotesk', fontWeight: 700 },
-  eventCard: { background: 'rgba(255,215,64,0.08)', border: '1px solid rgba(255,215,64,0.25)', borderRadius: 10, padding: '16px 20px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-start' },
-  eventIcon: { fontSize: 28, flexShrink: 0 },
-  eventName: { fontFamily: 'Space Grotesk', fontWeight: 700, color: 'var(--yellow)', marginBottom: 4 },
-  eventDesc: { fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 },
-  eventCost: { fontSize: 13, color: 'var(--red)', fontWeight: 600 },
-  eventSavings: { fontSize: 13, color: 'var(--green)', marginTop: 2 },
-  noEventCard: { background: 'rgba(0,230,118,0.06)', border: '1px solid rgba(0,230,118,0.15)', borderRadius: 10, padding: '12px 20px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', fontSize: 13, color: 'var(--text-muted)' },
-  creditBlock: { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, padding: '20px 24px', marginBottom: 24 },
-  creditTitle: { fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-muted)' },
-  creditRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 },
-  creditScore: { fontSize: 40, fontFamily: 'Space Grotesk', fontWeight: 700 },
-  creditChange: { fontSize: 20, fontWeight: 600 },
-  reasons: { display: 'flex', flexDirection: 'column', gap: 4 },
-  reason: { fontSize: 12, color: 'var(--text-muted)' },
-};
