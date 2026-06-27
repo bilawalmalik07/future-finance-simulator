@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [month, setMonth] = useState(1);
   const [summary, setSummary] = useState(null);
   const [runningSavings, setRunningSavings] = useState(null);
+  const [selectedAction, setSelectedAction] = useState(0);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -81,6 +82,21 @@ export default function Dashboard() {
   }
 
   function handleLogout() { localStorage.clear(); navigate('/'); }
+
+  useEffect(() => {
+    function handleKey(e) {
+      if (!sim || gameOver) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        setSelectedAction(prev => prev === 0 ? 1 : 0);
+      }
+      if (e.key === 'Enter') {
+        if (selectedAction === 0) navigate('/budget');
+        else handleRestart();
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [sim, gameOver, selectedAction]);
 
   const gameOver = month > 12;
   const creditRating = (score) => {
@@ -234,13 +250,15 @@ export default function Dashboard() {
               {[
                 { icon: '💰', title: 'Submit Budget', sub: `Allocate your month ${month} income`, onClick: () => navigate('/budget'), primary: true },
                 { icon: '🔄', title: 'Restart Simulation', sub: 'Start fresh with a new career', onClick: handleRestart, primary: false },
-              ].map(({ icon, title, sub, onClick, primary }) => (
+              ].map(({ icon, title, sub, onClick, primary }, i) => (
                 <button key={title} onClick={onClick} style={{
                   display: 'flex', alignItems: 'center', gap: 14,
                   background: primary ? 'var(--green-glow)' : 'var(--surface)',
-                  border: `1px solid ${primary ? 'rgba(0,230,118,0.25)' : 'var(--border)'}`,
+                  border: `1px solid ${selectedAction === i ? 'var(--green)' : primary ? 'rgba(0,230,118,0.25)' : 'var(--border)'}`,
                   borderRadius: 12, padding: '20px', textAlign: 'left',
                   cursor: 'pointer', color: 'var(--text)', width: '100%',
+                  outline: 'none',
+                  boxShadow: selectedAction === i ? '0 0 0 2px rgba(0,230,118,0.3)' : 'none',
                 }}>
                   <span style={{ fontSize: 28 }}>{icon}</span>
                   <div>
