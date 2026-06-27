@@ -1,6 +1,6 @@
 # Future Finance Simulator
 
-> Learning Personal Finance Through Experience, Not Just Advice
+> Learning Personal Finance Through Experience, Not Just Advice.
 
 Future Finance Simulator is an interactive web-based platform that teaches budgeting, credit management, and financial decision-making through realistic life simulation — not lectures.
 
