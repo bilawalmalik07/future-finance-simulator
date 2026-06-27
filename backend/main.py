@@ -1,8 +1,11 @@
 from fastapi import FastAPI, HTTPException  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
+from fastapi.staticfiles import StaticFiles  # type: ignore
+from fastapi.responses import FileResponse  # type: ignore
 from pydantic import BaseModel  # type: ignore
 from database import get_db, init_db
 import random
+import os
 
 app = FastAPI()
 
@@ -33,10 +36,7 @@ class BudgetRequest(BaseModel):
     entertainment: float
 
 
-@app.get("/")
-def home():
-    return {"message": "Future Finance Simulator API running!"}
-
+# ─── API Routes ───────────────────────────
 
 @app.get("/api/auth/check/{username}")
 def check_username(username: str):
@@ -217,7 +217,6 @@ def submit_budget(data: BudgetRequest):
                         data.food + data.utilities + data.entertainment, 2)
     remaining = round(monthly_income - total_spent, 2)
 
-    # Get last month savings balance as running total
     cursor.execute("""
         SELECT savings FROM budgets
         WHERE simulation_id = %s AND month_number < %s
@@ -227,7 +226,6 @@ def submit_budget(data: BudgetRequest):
     prev_row = cursor.fetchone()
     prev_savings = float(prev_row[0]) if prev_row else 0.0
 
-    # Running balance: carry forward + this month (can go negative = debt)
     savings = round(prev_savings + remaining, 2)
     in_debt = savings < 0
 
@@ -268,7 +266,6 @@ def update_credit_score(simulation_id: int):
     conn = get_db()
     cursor = conn.cursor()
 
-    # get monthly income from simulations
     cursor.execute(
         "SELECT monthly_income FROM simulations WHERE id = %s",
         (simulation_id,)
@@ -278,7 +275,6 @@ def update_credit_score(simulation_id: int):
         raise HTTPException(status_code=404, detail="Simulation not found")
     monthly_income = sim[0]
 
-    # get latest budget
     cursor.execute("""
         SELECT total_spent, savings, remaining
         FROM budgets
@@ -294,7 +290,6 @@ def update_credit_score(simulation_id: int):
 
     total_spent, savings, remaining = budget
 
-    # get current credit score
     cursor.execute("""
         SELECT score FROM credit_scores
         WHERE simulation_id = %s
@@ -304,7 +299,6 @@ def update_credit_score(simulation_id: int):
     current = cursor.fetchone()
     score = current[0] if current else 650
 
-    # get latest month number
     cursor.execute("""
         SELECT month_number FROM budgets
         WHERE simulation_id = %s
@@ -440,13 +434,11 @@ def trigger_event(simulation_id: int, month_number: int):
     conn = get_db()
     cursor = conn.cursor()
 
-    # 40% chance an event happens
     if random.random() > 0.4:
         return {"message": "No event this month!", "event": None}
 
     event = random.choice(emergency_events)
 
-    # get current savings
     cursor.execute("""
         SELECT savings, remaining FROM budgets
         WHERE simulation_id = %s AND month_number = %s
@@ -468,7 +460,6 @@ def trigger_event(simulation_id: int, month_number: int):
             RETURNING id
         """, (simulation_id, month_number, event["name"], event["cost"], event["description"]))
 
-        # update savings in budgets table
         cursor.execute("""
             UPDATE budgets SET savings = %s WHERE simulation_id = %s AND month_number = %s
         """, (new_savings, simulation_id, month_number))
@@ -500,7 +491,6 @@ def get_simulation_summary(simulation_id: int):
     conn = get_db()
     cursor = conn.cursor()
 
-    # Sum savings across all months
     cursor.execute("""
         SELECT COALESCE(SUM(savings), 0), COUNT(*) FROM budgets
         WHERE simulation_id = %s
@@ -509,21 +499,18 @@ def get_simulation_summary(simulation_id: int):
     total_savings = float(row[0])
     months_played = int(row[1])
 
-    # Total spent across the year
     cursor.execute("""
         SELECT COALESCE(SUM(total_spent), 0) FROM budgets
         WHERE simulation_id = %s
     """, (simulation_id,))
     total_spent = float(cursor.fetchone()[0])
 
-    # Count months where user overspent
     cursor.execute("""
         SELECT COUNT(*) FROM budgets
         WHERE simulation_id = %s AND remaining < 0
     """, (simulation_id,))
     overspent_months = int(cursor.fetchone()[0])
 
-    # Final credit score
     cursor.execute("""
         SELECT score FROM credit_scores
         WHERE simulation_id = %s
@@ -532,7 +519,6 @@ def get_simulation_summary(simulation_id: int):
     credit_row = cursor.fetchone()
     final_credit_score = credit_row[0] if credit_row else 650
 
-    # Starting credit score
     cursor.execute("""
         SELECT score FROM credit_scores
         WHERE simulation_id = %s
@@ -552,3 +538,21 @@ def get_simulation_summary(simulation_id: int):
         "final_credit_score": final_credit_score,
         "credit_change_overall": final_credit_score - starting_credit_score,
     }
+
+
+# ─── Serve React Frontend ───────────────────────────
+# This must come AFTER all API routes
+
+static_dir = os.path.join(os.path.dirname(__file__), "../frontend/dist")
+
+if os.path.exists(static_dir):
+    app.mount(
+        "/assets", StaticFiles(directory=f"{static_dir}/assets"), name="assets")
+
+    @app.get("/")
+    def serve_root():
+        return FileResponse(f"{static_dir}/index.html")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str):
+        return FileResponse(f"{static_dir}/index.html")
