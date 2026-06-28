@@ -99,7 +99,10 @@ export default function Dashboard() {
         borderBottom: '1px solid var(--border)', background: 'var(--surface)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ background: 'var(--green)', color: '#000', width: 28, height: 28, borderRadius: 6, fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>$</span>
+          <div style={{ background: '#00E676', width: 40, height: 26, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', border: '1.5px solid #00c060' }}>
+            <div style={{ position: 'absolute', top: 2, left: 2, right: 2, bottom: 2, border: '1px dashed rgba(0,150,70,0.5)', borderRadius: 2, pointerEvents: 'none' }} />
+            <span style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontStyle: 'italic', fontSize: 18, color: '#000', lineHeight: 1, position: 'relative', zIndex: 1 }}>F</span>
+          </div>
           <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16 }}>FutureFinance</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>
