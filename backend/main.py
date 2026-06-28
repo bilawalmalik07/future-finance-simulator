@@ -565,6 +565,10 @@ if os.path.exists(static_dir):
     app.mount(
         "/assets", StaticFiles(directory=f"{static_dir}/assets"), name="assets")
 
+    @app.get("/favicon.svg")
+    def serve_favicon():
+        return FileResponse(f"{static_dir}/favicon.svg")
+
     @app.get("/")
     def serve_root():
         return FileResponse(f"{static_dir}/index.html")
