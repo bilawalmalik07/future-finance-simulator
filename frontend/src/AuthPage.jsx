@@ -15,11 +15,21 @@ function useIsMobile() {
 function Logo() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span style={{
-        background: 'var(--green)', color: '#000', width: 32, height: 32,
-        borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18, flexShrink: 0,
-      }}>$</span>
+      <div style={{
+        background: '#00E676', width: 40, height: 26,
+        borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, position: 'relative', border: '1.5px solid #00c060',
+      }}>
+        <div style={{
+          position: 'absolute', top: 2, left: 2, right: 2, bottom: 2,
+          border: '1px dashed rgba(0,150,70,0.5)', borderRadius: 2,
+          pointerEvents: 'none',
+        }} />
+        <span style={{
+          fontFamily: 'Georgia, serif', fontWeight: 700, fontStyle: 'italic',
+          fontSize: 18, color: '#000', lineHeight: 1, position: 'relative', zIndex: 1,
+        }}>F</span>
+      </div>
       <span style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>FutureFinance</span>
     </div>
   );
