@@ -240,4 +240,4 @@ export default function BudgetPage() {
       </div>
     </div>
   );
-}
+} 
