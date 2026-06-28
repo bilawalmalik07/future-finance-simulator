@@ -22,6 +22,18 @@ def startup():
     init_db()
 
 
+# ─── Health Check ───────────────────────────
+
+@app.head("/")
+def head_root():
+    return {}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 class UsernameRequest(BaseModel):
     username: str
 
