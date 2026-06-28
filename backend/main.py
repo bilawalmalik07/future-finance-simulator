@@ -22,7 +22,7 @@ def startup():
     init_db()
 
 
-# ─── Health Check ───────────────────────────
+# ─── Health Check ──────────────────────────
 
 @app.head("/")
 def head_root():
