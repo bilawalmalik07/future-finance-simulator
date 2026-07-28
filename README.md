@@ -6,7 +6,7 @@ Future Finance Simulator is an interactive web-based platform that teaches budge
 
 🔗 **Live:** [futurefinance.live](https://futurefinance.live)
 
-> Alternate URL: [future-finance-simulator.onrender.com](https://future-finance-simulator.onrender.com)
+> Alternate URL: [future-finance-simulator.onrender.com]((https://future-finance-simulator-0tat.onrender.com))
 
 ---
 
